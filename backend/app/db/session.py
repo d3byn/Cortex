@@ -8,7 +8,7 @@ engine = create_engine(
 )
 
 #Handling orphaned jobs that were in progress when the server was restarted.
-def fail_orphaned_jobs() -> None:
+def _fail_orphaned_jobs() -> None:
     with Session(engine) as session:
         stale = session.exec(
             select(Job).where(col(Job.status).in_(["queued", "processing"]))
@@ -21,7 +21,7 @@ def fail_orphaned_jobs() -> None:
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
-    fail_orphaned_jobs()
+    _fail_orphaned_jobs()
 
 #database dependency 
 def get_session():
