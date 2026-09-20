@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     #storage
     data_dir: Path = BACKEND_DIR / "storage"
+    max_upload_mb: int = 25
 
     #chunking and retrieval
     chunk_size: int = 900
