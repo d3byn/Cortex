@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.db.session import init_db
+from app.api import ingest, documents
 
 @asynccontextmanager
 async def lifespan(app: FastAPI): #manages the application's lifespan events (startup and shutdown)
@@ -14,6 +15,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(ingest.router)
+app.include_router(documents.router)
 
 @app.get("/health")
 def health_check():
