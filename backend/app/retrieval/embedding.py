@@ -15,28 +15,22 @@ EMBED_BATCH_SIZE = 50
 _RETRYABLE_CODES = {429, 500, 502, 503, 504}
 _MAX_ATTEMPTS = 5
 
-
 def _uses_prompt_prefixes() -> bool:
     """gemini-embedding-2 takes its task hint as text; -001 takes a task_type parameter."""
     return "embedding-2" in settings.gemini_embedding_model
 
-
 def _format_document(chunk: str) -> str:
     return f"title: none | text: {chunk}" if _uses_prompt_prefixes() else chunk
-
 
 def _format_query(question: str) -> str:
     return f"task: question answering | query: {question}" if _uses_prompt_prefixes() else question
 
-
 def _config(task_type: str) -> Optional[types.EmbedContentConfig]:
     return None if _uses_prompt_prefixes() else types.EmbedContentConfig(task_type=task_type)
-
 
 def _as_contents(texts: List[str]) -> List[types.Content]:
     # ONE Content per text. A bare list of strings can be read as "several parts of ONE item" and come back as a single vector, so they are explicit
     return [types.Content(parts=[types.Part(text=t)]) for t in texts]
-
 
 def _embed_with_retry(texts: List[str], task_type: str) -> List[List[float]]:
     for attempt in range(1, _MAX_ATTEMPTS + 1):
@@ -57,7 +51,6 @@ def _embed_with_retry(texts: List[str], task_type: str) -> List[List[float]]:
         raise RuntimeError(f"Sent {len(texts)} texts but got {len(vectors)} embeddings back.")
     return vectors
 
-
 def embed_texts(
     texts: List[str],
     progress_cb: Optional[Callable[[int, int], None]] = None,
@@ -73,7 +66,6 @@ def embed_texts(
         if progress_cb is not None:
             progress_cb(len(vectors), len(texts))
     return np.array(vectors, dtype="float32")
-
 
 def embed_query(text: str) -> np.ndarray:
     """Embed one question. Returns a (dim,) float32 array."""
