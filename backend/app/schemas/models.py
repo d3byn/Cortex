@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
 
 class IngestResponse(BaseModel):
@@ -26,6 +26,8 @@ class DocumentInfo(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=50)
+    mode: Literal["vector", "keyword", "hybrid", "hybrid_rerank"] = "hybrid_rerank"
+    document_ids: Optional[List[int]] = None      # None = search all documents
 
 class SearchHit(BaseModel):
     chunk_id: int
@@ -33,4 +35,6 @@ class SearchHit(BaseModel):
     filename: str
     chunk_index: int
     score: float
+    vector_rank: Optional[int] = None
+    keyword_rank: Optional[int] = None
     text: str
