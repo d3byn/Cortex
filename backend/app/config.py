@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     gemini_api_key: str                                   
     gemini_generation_model: str = "gemini-3.1-flash-lite"
     gemini_embedding_model: str = "gemini-embedding-2"
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     #storage
     data_dir: Path = BACKEND_DIR / "storage"
