@@ -6,6 +6,7 @@ from app.db.models import Chunk, Document, Job
 from app.db.session import get_session
 from app.retrieval.vector_store import vector_store
 from app.schemas.models import DocumentInfo
+from app.retrieval.keyword_store import keyword_store
 
 router = APIRouter(tags=["documents"])
 
@@ -31,6 +32,7 @@ def delete_document(document_id: int, session: Session = Depends(get_session)):
     for row in [*chunks, *jobs, doc]:
         session.delete(row)
     session.commit()
+    keyword_store.invalidate()
 
     vector_store.remove(chunk_ids)
     for path in saved_files:

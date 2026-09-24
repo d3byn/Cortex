@@ -1,4 +1,5 @@
 import logging
+import threading
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlmodel import Session, select
@@ -6,6 +7,7 @@ from app.api import documents, ingest, search
 from app.db.models import Chunk
 from app.db.session import engine, init_db
 from app.retrieval.vector_store import vector_store
+from app.retrieval.reranker import reranker
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -23,6 +25,7 @@ def _check_index_consistency() -> None:
 async def lifespan(app: FastAPI): #manages the application's lifespan events (startup and shutdown)
     init_db()
     _check_index_consistency()
+    threading.Thread(target=reranker.warm_up, daemon=True).start()   # load model without blocking startup
     yield #separate the startup and shutdown events
 
 app = FastAPI(
