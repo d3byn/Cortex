@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from sqlmodel import Session, col, select
 from app.db.models import Chunk, Document
 
@@ -11,6 +11,8 @@ class RetrievedChunk:
     chunk_index: int
     text: str
     score: float
+    vector_rank: Optional[int] = None # position in the FAISS list (None = not found there)
+    keyword_rank: Optional[int] = None # position in the BM25 list
 
 def load_chunks(session: Session, scored_ids: List[Tuple[int, float]]) -> List[RetrievedChunk]:
     """Turn [(chunk_id, score), ...] from FAISS into full chunks with text + filename."""

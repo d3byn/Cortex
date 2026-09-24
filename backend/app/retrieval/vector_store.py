@@ -1,10 +1,8 @@
 import os
 import threading
-from typing import List, Optional, Sequence, Set, Tuple
-
+from typing import List, Optional, Sequence, Set, Tuple, Collection
 import faiss
 import numpy as np
-
 from app.config import settings
 
 INDEX_PATH = settings.index_dir / "faiss.index"
@@ -72,16 +70,29 @@ class VectorStore:
             return removed
 
     # read
-    def search(self, query: np.ndarray, k: int) -> List[Tuple[int, float]]:
-        """Return up to k (chunk_id, cosine_similarity) pairs, best first."""
+    def search(
+        self, query: np.ndarray, k: int, allowed_ids: Optional[Collection[int]] = None
+    ) -> List[Tuple[int, float]]:
+        """Return up to k (chunk_id, cosine_similarity) pairs, best first.
+
+        If `allowed_ids` is given, FAISS only considers those ids (filter BEFORE ranking).
+        """
         with self._lock:
             if self.index is None or self.index.ntotal == 0:
+                return []
+            if allowed_ids is not None and len(allowed_ids) == 0:
                 return []
             q = np.array(query, dtype="float32").reshape(1, -1)
             if q.shape[1] != self.index.d:
                 raise ValueError("Query vector size does not match the index.")
             faiss.normalize_L2(q)
-            scores, ids = self.index.search(q, min(k, self.index.ntotal))
+            params = None
+            selector = None
+            if allowed_ids is not None:
+                selector = faiss.IDSelectorBatch(np.array(sorted(allowed_ids), dtype="int64"))
+                params = faiss.SearchParameters()
+                params.sel = selector
+            scores, ids = self.index.search(q, min(k, self.index.ntotal), params=params)
         return [(int(i), float(s)) for i, s in zip(ids[0], scores[0]) if i != -1]
 
     # self-repair
