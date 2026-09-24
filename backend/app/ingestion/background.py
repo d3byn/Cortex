@@ -5,8 +5,9 @@ from app.db.models import Chunk, Document, Job, utcnow
 from app.db.session import engine
 from app.ingestion.chunker import chunk_text
 from app.ingestion.parsers import parse_file
+from app.retrieval.embeddings import embed_texts
+from app.retrieval.vector_store import vector_store
 
-#Find a particular job in the database and update its status/progress/stage/etc
 def _update_job(job_id: str, **fields) -> None:
     """Save progress in its own short session, so pollers see it immediately."""
     with Session(engine) as session:
@@ -19,8 +20,6 @@ def _update_job(job_id: str, **fields) -> None:
         session.add(job)
         session.commit()
 
-
-#main ingestion pipeline 
 def process_document(
     job_id: str, saved_path: Path, filename: str, file_type: str, content_hash: str
 ) -> None:
@@ -28,32 +27,41 @@ def process_document(
         _update_job(job_id, status="processing", progress=5, stage="Reading file")
         text = parse_file(saved_path, file_type)
 
-        _update_job(job_id, progress=30, stage="Splitting into chunks")
+        _update_job(job_id, progress=15, stage="Splitting into chunks")
         pieces = chunk_text(text, settings.chunk_size, settings.chunk_overlap)
         if not pieces:
             raise ValueError("The file produced no text chunks.")
 
-        _update_job(job_id, progress=60, stage="Saving to database")
+        # SLOW, can-fail step FIRST, while NO database transaction is open.
+        def on_progress(done: int, total: int) -> None:
+            _update_job(job_id, progress=15 + int(75 * done / total),
+                        stage=f"Embedding chunks ({done}/{total})")
+
+        vectors = embed_texts(pieces, progress_cb=on_progress)
+
+        #one short transaction that saves everything together.
+        _update_job(job_id, progress=92, stage="Saving")
         with Session(engine) as session:
-            # Guard against two identical uploads racing each other.
             if session.exec(select(Document).where(Document.content_hash == content_hash)).first():
                 raise ValueError("This file has already been uploaded.")
 
-            doc = Document(filename=filename, file_type=file_type, content_hash=content_hash, num_chunks=len(pieces))
+            doc = Document(filename=filename, file_type=file_type,
+                           content_hash=content_hash, num_chunks=len(pieces))
             session.add(doc)
-            session.flush() # sends the INSERT now so doc.id exists, but does NOT commit yet
+            session.flush()
 
-            session.add_all(
-                Chunk(document_id=doc.id, chunk_index=i, text=piece)
-                for i, piece in enumerate(pieces)
-            )
-            session.flush() # chunk ids now exist too (Stage 4 will use them for FAISS)
+            rows = [Chunk(document_id=doc.id, chunk_index=i, text=p) for i, p in enumerate(pieces)]
+            session.add_all(rows)
+            session.flush() # chunk ids now exist
+            chunk_ids = [row.id for row in rows]
+            document_id = doc.id
 
-            # Stage 4 will embed the chunks and add them to FAISS right here,
-            # BEFORE the commit. If anything fails, nothing is saved.
-
-            document_id = doc.id # read it now - after commit the object is "expired"
-            session.commit()
+            vector_store.add(vectors, chunk_ids) # vectors filed under the chunk ids
+            try:
+                session.commit()
+            except Exception:
+                vector_store.remove(chunk_ids) # undo so FAISS never keeps orphans
+                raise
 
         _update_job(job_id, status="complete", progress=100, stage="Done", document_id=document_id)
 
