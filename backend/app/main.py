@@ -1,11 +1,28 @@
-from fastapi import FastAPI
+import logging
 from contextlib import asynccontextmanager
-from app.db.session import init_db
-from app.api import ingest, documents
+from fastapi import FastAPI
+from sqlmodel import Session, select
+from app.api import documents, ingest, search
+from app.db.models import Chunk
+from app.db.session import engine, init_db
+from app.retrieval.vector_store import vector_store
+
+logger = logging.getLogger("uvicorn.error")
+
+def _check_index_consistency() -> None:
+    with Session(engine) as session:
+        chunk_ids = set(session.exec(select(Chunk.id)).all())
+    strays, missing = vector_store.reconcile(chunk_ids)
+    logger.info("Index check: %d chunks, %d vectors, %d stray vectors removed",
+                len(chunk_ids), vector_store.count, strays)
+    if missing:
+        logger.warning("%d chunks have no vector and cannot be found by meaning. "
+                       "Delete and re-upload the affected documents.", missing)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI): #manages the application's lifespan events (startup and shutdown)
     init_db()
+    _check_index_consistency()
     yield #separate the startup and shutdown events
 
 app = FastAPI(
@@ -17,6 +34,7 @@ app = FastAPI(
 
 app.include_router(ingest.router)
 app.include_router(documents.router)
+app.include_router(search.router)
 
 @app.get("/health")
 def health_check():
