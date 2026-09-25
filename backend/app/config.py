@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     top_k_candidates: int = 20
     top_k_final: int = 5
 
+    #cache
+    cache_ttl_seconds: int = 600
+
     model_config = SettingsConfigDict(env_file=PROJECT_DIR / ".env", 
                                       extra="ignore")
 
