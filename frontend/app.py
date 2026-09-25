@@ -7,8 +7,8 @@ import streamlit as st
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 POLL_SECONDS = 1.0
 
-st.set_page_config(page_title="Document Intelligence Platform", layout="wide")
-st.title("📄 Document Intelligence & Retrieval Platform")
+st.set_page_config(page_title="Cortex - Document Intelligence Platform", layout="wide")
+st.title("📄 Cortex - Document Intelligence & Retrieval Platform")
 st.caption("Grounded, citation-backed Q&A over your PDF / TXT / Markdown files — powered by Gemini.")
 
 
