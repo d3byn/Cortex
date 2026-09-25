@@ -6,6 +6,8 @@ services:
     env_file:
       - .env
     volumes:
+      - ./backend:/app
+
       # Persist SQLite DB + FAISS index + uploaded files across restarts.
       - ./backend/storage:/app/storage
     healthcheck:
@@ -21,6 +23,8 @@ services:
       - "8501:8501"
     environment:
       - BACKEND_URL=http://backend:8000
+    volumes:
+      - ./frontend:/app
     depends_on:
       backend:
         condition: service_healthy
