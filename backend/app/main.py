@@ -8,6 +8,7 @@ from app.db.models import Chunk
 from app.db.session import engine, init_db
 from app.retrieval.vector_store import vector_store
 from app.retrieval.reranker import reranker
+from app.api import documents, ingest, query, search
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -38,6 +39,7 @@ app = FastAPI(
 app.include_router(ingest.router)
 app.include_router(documents.router)
 app.include_router(search.router)
+app.include_router(query.router)
 
 @app.get("/health")
 def health_check():

@@ -8,6 +8,7 @@ from app.ingestion.parsers import parse_file
 from app.retrieval.embeddings import embed_texts
 from app.retrieval.vector_store import vector_store
 from app.retrieval.keyword_store import keyword_store
+from app.cache.response_cache import query_cache
 
 def _update_job(job_id: str, **fields) -> None:
     """Save progress in its own short session, so pollers see it immediately."""
@@ -63,7 +64,8 @@ def process_document(
             except Exception:
                 vector_store.remove(chunk_ids) # undo so FAISS never keeps orphans
                 raise
-            keyword_store.invalidate() 
+            keyword_store.invalidate()
+            query_cache.bump_version() # any cached answer could now be outdated or incomplete 
 
         _update_job(job_id, status="complete", progress=100, stage="Done", document_id=document_id)
 
