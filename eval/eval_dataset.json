@@ -1,0 +1,77 @@
+[
+  {
+    "question": "Why is object-oriented programming useful when building large and complex software systems?",
+    "expected_answer_contains": "easier to understand, develop, maintain, and reuse",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "In OOP, how would you represent something like a bank account, including both its information and the actions that can be performed on it?",
+    "expected_answer_contains": "attributes and methods",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What is the difference between a class and an object in simple terms?",
+    "expected_answer_contains": "class is a blueprint and object is an instance",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "Why do programmers use constructors when creating objects?",
+    "expected_answer_contains": "initialize an object's state",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "How does encapsulation prevent other parts of a program from incorrectly changing an object's internal state?",
+    "expected_answer_contains": "controlling access to internal data",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What does abstraction achieve when a software system contains complicated internal logic?",
+    "expected_answer_contains": "hiding unnecessary implementation details",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "When should composition be preferred instead of inheritance?",
+    "expected_answer_contains": "when there is a has-a relationship",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What are the four major pillars that form the foundation of OOP?",
+    "expected_answer_contains": "encapsulation, abstraction, inheritance, and polymorphism",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "In the example involving Animal, Dog, and Cat, which method demonstrates runtime polymorphism?",
+    "expected_answer_contains": "sound()",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What is the common name for the class that another class inherits from?",
+    "expected_answer_contains": "parent class, base class, or superclass",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "Which OOP relationship describes two independent objects such as a Teacher and a Student being connected?",
+    "expected_answer_contains": "Association",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What type of relationship is represented when a Department contains Teachers but those Teachers can still exist independently?",
+    "expected_answer_contains": "Aggregation",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "What is the stronger form of ownership where the contained object's lifetime is strongly connected to the containing object?",
+    "expected_answer_contains": "Composition",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "Which SOLID principle says that a class should have one primary responsibility?",
+    "expected_answer_contains": "Single Responsibility Principle",
+    "expected_source_filename": "oops_demo.pdf"
+  },
+  {
+    "question": "Which SOLID principle says that high-level code should depend on abstractions rather than concrete implementations?",
+    "expected_answer_contains": "Dependency Inversion Principle",
+    "expected_source_filename": "oops_demo.pdf"
+  }
+]
