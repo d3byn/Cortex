@@ -38,3 +38,24 @@ class SearchHit(BaseModel):
     vector_rank: Optional[int] = None
     keyword_rank: Optional[int] = None
     text: str
+
+class QueryRequest(BaseModel):
+    question: str = Field(min_length=1)
+    document_ids: Optional[List[int]] = None
+
+class Citation(BaseModel):
+    chunk_id: int
+    document_id: int
+    filename: str
+    chunk_index: int
+    score: float
+    text: str
+
+class QueryResponse(BaseModel):
+    answer: str
+    citations: List[Citation]
+    search_query: str
+    is_grounded: Optional[bool]
+    retrieval_degraded: bool
+    trace: dict
+    cached: bool = False
