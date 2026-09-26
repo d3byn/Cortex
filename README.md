@@ -129,26 +129,6 @@ Full interactive docs at `/docs` once the backend is running. Key endpoints:
 | `POST /search` | Retrieval only, with a `mode` to compare strategies |
 | `POST /query` | Full pipeline: rewrite, retrieve, answer, cite, ground |
 
-## Known limitations
-
-- **No OCR.** Scanned PDFs (images of text) have no extractable text and
-  will be rejected at ingestion with a clear error.
-- **Background jobs don't survive a server restart.** An in-progress
-  upload is marked "failed" if the server restarts mid-job (self-healing
-  on startup, but the file must be re-uploaded). A production system would
-  use a durable task queue (e.g. Celery + Redis) instead of FastAPI's
-  built-in background tasks.
-- **Single-process only.** The response cache and BM25 index live in
-  process memory, so they're not shared across multiple backend instances.
-  SQLite itself only supports one writer at a time. Both are fine at
-  personal/demo scale; a multi-instance deployment would need a shared
-  cache (Redis) and a server database (Postgres).
-- **No relevance threshold.** Retrieval always returns its best-available
-  candidates, even for an off-topic question — nearest-neighbor search
-  has no natural "found nothing" signal. The system relies on the LLM's
-  prompt instructions and the groundedness check to catch this, rather
-  than an empty result list.
-
 ## Project structure
 
 ```
