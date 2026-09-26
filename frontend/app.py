@@ -4,7 +4,10 @@ import re
 import requests
 import streamlit as st
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = st.secrets.get(
+    "BACKEND_URL",
+    os.environ.get("BACKEND_URL", "http://localhost:8000")
+).rstrip("/")
 POLL_SECONDS = 1.0
 
 st.set_page_config(page_title="Cortex - Document Intelligence Platform", layout="wide")
