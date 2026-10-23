@@ -68,9 +68,9 @@ derived index that can always be rebuilt from SQLite, never the reverse.
 
 ## Screenshot
 
-!(assets/1.png)
-!(assets/2.png)
-!(assets/3.png)
+![Screenshot 1](assets/1.png)
+![Screenshot 2](assets/2.png)
+![Screenshot 3](assets/3.png)
 
 ## Getting started
 
