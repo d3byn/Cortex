@@ -66,6 +66,12 @@ derived index that can always be rebuilt from SQLite, never the reverse.
 | Frontend | Streamlit |
 | Containers | Docker Compose |
 
+## Screenshot
+
+!(assets/1.png)
+!(assets/2.png)
+!(assets/3.png)
+
 ## Getting started
 
 ### Option A: Docker (recommended)
