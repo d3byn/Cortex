@@ -77,8 +77,8 @@ derived index that can always be rebuilt from SQLite, never the reverse.
 ### Option A: Docker (recommended)
 
 ```bash
-git clone <your-repo-url>
-cd doc-intel-platform
+git clone https://github.com/d3byn/Cortex
+cd Cortex
 cp .env.example .env        # add your Gemini API key
 docker compose up --build
 ```
@@ -120,7 +120,22 @@ hybrid, hybrid + rerank), plus end-to-end accuracy, groundedness rate, and
 per-stage latency for the full pipeline. My own run over N real questions:
 
 ```
-<PASTE YOUR OWN run_eval.py OUTPUT HERE>
+=== Retrieval comparison (Recall@5: right document found in top 5?) ===
+  vector          100.0%
+  keyword         100.0%
+  hybrid          100.0%
+  hybrid_rerank   100.0%
+
+=== End-to-end pipeline (hybrid_rerank + query rewrite + groundedness check) ===
+  Questions run       : 15  (0 errored)
+  Accuracy (proxy)    : 73.3%
+  Grounded rate       : 80.0%
+  Avg total latency   : 9353 ms
+  Avg time per stage  :
+    rewrite_query         2184.4 ms
+    retrieve               805.5 ms
+    generate_answer       3576.3 ms
+    check_groundedness    2787.3 ms
 ```
 
 ## API reference
