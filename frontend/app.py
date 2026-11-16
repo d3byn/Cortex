@@ -4,9 +4,9 @@ import re
 import requests
 import streamlit as st
 
-BACKEND_URL = st.secrets.get(
+BACKEND_URL = os.getenv(
     "BACKEND_URL",
-    os.environ.get("BACKEND_URL", "http://localhost:8000")
+    "http://localhost:8000"
 ).rstrip("/")
 POLL_SECONDS = 1.0
 
