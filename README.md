@@ -197,9 +197,11 @@ erDiagram
 | Containers | Docker Compose |
 
 ## Screenshot
-
+### 1. Dashboard
 ![Screenshot 1](assets/1.png)
+### 2. Source Attribution & Relevance Scoring
 ![Screenshot 2](assets/2.png)
+### 3. RAG Pipeline Observability & Performance Metrics
 ![Screenshot 3](assets/3.png)
 
 ## Getting started
@@ -247,7 +249,10 @@ python run_eval.py
 
 This reports Recall@5 for each of four retrieval modes (vector, keyword,
 hybrid, hybrid + rerank), plus end-to-end accuracy, groundedness rate, and
-per-stage latency for the full pipeline. My own run over N real questions:
+per-stage latency for the full pipeline. 
+
+
+My own run over N real questions:
 
 ```
 === Retrieval comparison (Recall@5: right document found in top 5?) ===
