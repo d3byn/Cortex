@@ -48,9 +48,139 @@ QUERY (every question)
            -> check groundedness (a second, independent LLM audit)
 ```
 
+### 1. Big picture
+
+```mermaid
+flowchart LR
+    UI["Streamlit UI<br/>chat + upload"] -->|HTTP| API["FastAPI backend<br/>/ingest /documents /search /query"]
+
+    API -->|"POST /ingest"| ING["Ingestion<br/>background task"]
+    API -->|"POST /query"| LG["LangGraph pipeline<br/>4 nodes"]
+
+    ING --> SQL[("SQLite<br/>documents, chunks, jobs<br/>SOURCE OF TRUTH")]
+    ING --> FAISS[("FAISS index<br/>1 vector per chunk<br/>DERIVED, rebuildable")]
+    ING -.->|"invalidate / bump version"| BM["BM25 index<br/>in memory"]
+    ING -.-> CACHE["Response cache<br/>in memory, TTL 10 min"]
+
+    LG --> FAISS
+    LG --> BM
+    LG --> SQL
+    LG --> RR["Cross-encoder reranker<br/>runs locally"]
+    LG <-->|"embed, rewrite, answer, audit"| GEM["Google Gemini API"]
+    ING -->|"embed chunks"| GEM
+    API --> CACHE
+```
+
 Storage: SQLite holds the source of truth (documents, chunks, upload jobs).
 FAISS holds one vector per chunk, keyed by the chunk's own database ID — a
 derived index that can always be rebuilt from SQLite, never the reverse.
+
+### 2. Ingestion pipeline (P-C-E-S)
+
+```mermaid
+flowchart TD
+    A["Upload file"] --> B{"Valid type<br/>and size?<br/>pdf/txt/md, max 25 MB"}
+    B -->|no| X1["400 / 413"]
+    B -->|yes| C{"SHA-256 hash<br/>already in DB?"}
+    C -->|yes| X2["409 duplicate"]
+    C -->|no| D["Create Job row<br/>save file to disk"]
+    D --> E["Return 202 + job_id<br/>UI polls GET /jobs/id"]
+    D --> F
+
+    subgraph BG ["Background task"]
+        F["1 PARSE<br/>pypdf + fixes for broken PDFs"] --> G["2 CHUNK<br/>900 chars, 150 overlap<br/>cut at natural boundaries"]
+        G --> H["3 EMBED<br/>Gemini, batches of 50<br/>retry with backoff<br/>NO DB transaction open yet"]
+        H --> I["4 SAVE in ONE transaction"]
+        I --> I1["insert Document + Chunks<br/>flush to get chunk IDs"]
+        I1 --> I2["add vectors to FAISS<br/>using chunk IDs as FAISS IDs"]
+        I2 --> I3{"commit OK?"}
+        I3 -->|no| I4["remove those vectors<br/>mark job failed"]
+        I3 -->|yes| I5["invalidate BM25<br/>bump cache version<br/>job complete"]
+    end
+```
+
+**Why it's built this way**
+- **Embed before the transaction.** The slow, failure-prone network step happens while no DB lock is held.
+- **Chunk ID = FAISS ID.** No separate mapping table, so text and vectors cannot drift apart.
+- **Undo on failure.** If the commit fails, the vectors are removed, so FAISS never keeps orphans.
+- **Overlap (150 chars)** so a sentence cut at a chunk edge still appears whole in the next chunk.
+
+### 3. Query pipeline (R-R-G-C)
+
+```mermaid
+flowchart TD
+    Q["POST /query<br/>question"] --> K{"Cache hit?<br/>key = version + question + doc ids"}
+    K -->|yes| R0["Return cached answer<br/>cached = true"]
+    K -->|no| N1
+
+    subgraph LG ["LangGraph: one shared state flows through 4 nodes"]
+        N1["1 REWRITE<br/>LLM turns the question into a short<br/>standalone search query<br/>on failure: use original question"]
+        N2["2 RETRIEVE<br/>hybrid search + rerank<br/>on reranker failure: skip rerank"]
+        N3["3 GENERATE<br/>answer ONLY from context<br/>cite as Source 1, Source 2<br/>no chunks: say nothing relevant found"]
+        N4["4 CHECK<br/>second LLM call, YES or NO:<br/>is the answer fully supported?<br/>on failure: is_grounded = unknown"]
+        N1 --> N2 --> N3 --> N4
+    end
+
+    N4 --> OUT["Response: answer, citations,<br/>is_grounded, retrieval_degraded,<br/>per-stage timings"]
+    OUT --> CS["Store in cache"]
+```
+
+### 4. Hybrid retrieval (2-1-1), the heart of the project
+
+```mermaid
+flowchart LR
+    SQ["Search query"] --> V["SEARCH 1: Vector (FAISS)<br/>finds MEANING<br/>top 20"]
+    SQ --> KW["SEARCH 2: Keyword (BM25)<br/>finds EXACT WORDS<br/>top 20"]
+    V --> F["MERGE: Reciprocal Rank Fusion<br/>score = sum of 1 / (60 + rank)"]
+    KW --> F
+    F --> C["20 candidates"]
+    C --> RE["JUDGE: Cross-encoder<br/>reads query + chunk TOGETHER<br/>re-scores every pair"]
+    RE --> T["Top 5 chunks<br/>sent to the LLM"]
+```
+
+### 5. Data model
+
+```mermaid
+erDiagram
+    DOCUMENT ||--o{ CHUNK : "split into"
+    DOCUMENT ||--o| JOB : "tracked by"
+    DOCUMENT {
+        int id PK
+        string filename
+        string content_hash "SHA-256, duplicate check"
+        int num_chunks
+    }
+    CHUNK {
+        int id PK "also the FAISS vector ID"
+        int document_id FK
+        int chunk_index
+        string text
+    }
+    JOB {
+        string id PK
+        string status "queued, processing, complete, failed"
+        int progress
+        string stage
+    }
+```
+
+### 6. What happens when things fail
+
+| Failure | Behaviour |
+|---|---|
+| Gemini 429 / 5xx | retried with exponential backoff and jitter |
+| Rewrite call fails | falls back to the original question |
+| Reranker can't load | skips only reranking, `retrieval_degraded = true` |
+| Groundedness call fails | `is_grounded = null` (unknown), answer still returned |
+| Commit fails mid-ingest | vectors removed, job marked failed |
+| Server restarts mid-ingest | orphaned jobs marked failed on startup |
+| Documents added or deleted | cache version bumped, so old answers can never match |
+| FAISS and SQLite disagree | startup reconcile removes stray vectors and warns about missing ones |
+
+---
+
+
+
 
 ## Tech stack
 
